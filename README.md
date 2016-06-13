@@ -46,7 +46,58 @@ In this case we tell to the container:
 ```sh
 $ docker run -it --memory=64m --memory-swap=64m --env ALLOC_HEAP_MB=1 --env MAX_HEAP_SIZE_MB=256 valentinomiazzo/jvm-memory-test
 ```
-If you leave the container run for some seconds you will see that it will exit when it will be killed by Docker.
+If you leave the container run for some seconds you will see that the container will exit printing something like.
+```
+Native Memory Tracking:
+
+Total: reserved=1540MB, committed=61MB
+-                 Java Heap (reserved=256MB, committed=46MB)
+                            (mmap: reserved=256MB, committed=46MB)
+
+-                     Class (reserved=1032MB, committed=5MB)
+                            (classes #414)
+                            (mmap: reserved=1032MB, committed=5MB)
+
+-                    Thread (reserved=6MB, committed=6MB)
+                            (thread #11)
+                            (stack: reserved=6MB, committed=6MB)
+
+-                      Code (reserved=244MB, committed=3MB)
+                            (mmap: reserved=244MB, committed=2MB)
+
+-                        GC (reserved=1MB, committed=0MB)
+                            (mmap: reserved=1MB, committed=0MB)
+
+-                    Symbol (reserved=1MB, committed=1MB)
+                            (malloc=1MB #103)
+
+PID   USER     TIME   COMMAND
+    1 root       0:00 /bin/sh -c java      -XX:+UnlockDiagnosticVMOptions -XX:NativeMemoryTracking=summary -XX:+PrintNMTStatistics -XX:-AutoShutdownNMT      -Xm
+    6 root       0:00 java -XX:+UnlockDiagnosticVMOptions -XX:NativeMemoryTracking=summary -XX:+PrintNMTStatistics -XX:-AutoShutdownNMT -Xmx256m -Xms1m -Xss256k
+  318 root       0:00 ps 6
+6:
+java.io.IOException: Connection refused
+	at sun.tools.attach.LinuxVirtualMachine.connect(Native Method)
+	at sun.tools.attach.LinuxVirtualMachine.<init>(LinuxVirtualMachine.java:124)
+	at sun.tools.attach.LinuxAttachProvider.attachVirtualMachine(LinuxAttachProvider.java:63)
+	at com.sun.tools.attach.VirtualMachine.attach(VirtualMachine.java:208)
+	at sun.tools.jcmd.JCmd.executeCommandForPid(JCmd.java:147)
+	at sun.tools.jcmd.JCmd.main(JCmd.java:131)
+```
+This is what happened:
+- the GC of the JVM tried allocate another chunk of RAM for the Heap
+- the cgroup associated with the container went over 64MB of RAM
+- the kernel/docker killed the process of the JVM
+- the infinite loop calling jcmd was executed yet another time
+- the JVM process was not found by the jcmd loop and therefore the CMD completed
+- the Docker container exited.
+
+You can check that Docker actualli terminated the container with
+```sh
+$ docker inspect -f '{{json .State}}' $(docker ps -l -q)
+{"Status":"exited","Running":false,"Paused":false,"Restarting":false,"OOMKilled":true,"Dead":false,"Pid":0,"ExitCode":0,"Error":"","StartedAt":"2016-06-13T13:33:32.861200851Z","FinishedAt":"2016-06-13T13:33:43.929282195Z"}
+```
+Note: "OOMKilled":true
 
 # Simulate another memory leak on the heap
 This is like before except:
