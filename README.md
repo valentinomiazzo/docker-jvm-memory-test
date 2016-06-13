@@ -147,7 +147,7 @@ $ docker inspect -f '{{json .State}}' $(docker ps -l -q)
 Note: "OOMKilled":false
 
 # Supported leaks
-The image supports the following types of leaks. See the Dockerfile for details about all the available enviroment variables.
+The image supports the following types of leaks. See the [Dockerfile](Dockerfile) for details about all the available enviroment variables.
 - Heap
 - Direct buffers
 - Native memory via sun.misc.Unsafe.allocateMemory()
