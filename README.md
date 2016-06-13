@@ -139,8 +139,6 @@ This is what happened:
 - the JVM process was not found by the jcmd loop and therefore the CMD completed
 - the Docker container exited.
 
-This kills the Java application that exits and the same happens to the container.
-
 You can check that Docker *didn't* terminate the container with
 ```sh
 $ docker inspect -f '{{json .State}}' $(docker ps -l -q)
