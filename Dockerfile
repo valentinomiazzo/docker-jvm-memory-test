@@ -61,4 +61,4 @@ CMD java \
      -XX:MaxDirectMemorySize=${MAX_DIRECT_SIZE_MB}m \
      -cp javassist.jar:. \
      MemoryTest $ALLOC_PERIOD_MS $ALLOC_HEAP_MB $ALLOC_NATIVE_MB $ALLOC_DIRECT_MB $ALLOC_CLASSES_COUNT $ALLOC_THREADS_COUNT \
-     & PID=$! ; while true ; do sleep ${LOG_PERIOD_S}s ; ps $PID && jcmd $PID VM.native_memory summary scale=MB || break ; done
+     & PID=$! ; while [ -e /proc/$PID ] ; do jcmd $PID VM.native_memory summary scale=MB ; sleep ${LOG_PERIOD_S}s ; done 
