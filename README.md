@@ -101,11 +101,52 @@ Note: "OOMKilled":true
 
 # Simulate another memory leak on the heap
 This is like before except:
-- the JVM will give an OutOfMemoryException at 32MB
+- we limit the JVM to 32MB of Heap (MAX_HEAP_SIZE_MB=32)
 ```sh
 $ docker run -it --memory=64m --memory-swap=64m --env ALLOC_HEAP_MB=1 --env MAX_HEAP_SIZE_MB=32 valentinomiazzo/jvm-memory-test
 ```
-In this case, as expected, we get an OutOfMemoryException. This kills the Java application that exits and the same happens to the container.
+This is the output:
+```
+Native Memory Tracking:
+
+Total: reserved=1315MB, committed=47MB
+-                 Java Heap (reserved=32MB, committed=32MB)
+                            (mmap: reserved=32MB, committed=32MB)
+
+-                     Class (reserved=1032MB, committed=5MB)
+                            (classes #414)
+                            (mmap: reserved=1032MB, committed=5MB)
+
+-                    Thread (reserved=6MB, committed=6MB)
+                            (thread #11)
+                            (stack: reserved=6MB, committed=6MB)
+
+-                      Code (reserved=244MB, committed=3MB)
+                            (mmap: reserved=244MB, committed=2MB)
+
+-                    Symbol (reserved=1MB, committed=1MB)
+                            (malloc=1MB #103)
+
+Exception in thread "main" java.lang.OutOfMemoryError: Java heap space
+	at MemoryTest.main(MemoryTest.java:92)
+```	
+In this case, as expected, we get an OutOfMemoryException.
+This is what happened:
+- the GC of the JVM could no allocate another chunk of RAM
+- an OutOfMemoryException was thrown and not caught by the main() method
+- this caused the exit of the JVM
+- the infinite loop calling jcmd was executed yet another time
+- the JVM process was not found by the jcmd loop and therefore the CMD completed
+- the Docker container exited.
+
+This kills the Java application that exits and the same happens to the container.
+
+You can check that Docker *didn't* terminate the container with
+```sh
+$ docker inspect -f '{{json .State}}' $(docker ps -l -q)
+{"Status":"exited","Running":false,"Paused":false,"Restarting":false,"OOMKilled":false,"Dead":false,"Pid":0,"ExitCode":0,"Error":"","StartedAt":"2016-06-13T13:39:37.805772027Z","FinishedAt":"2016-06-13T13:40:08.279884682Z"}
+```
+Note: "OOMKilled":false
 
 # Supported leaks
 The image supports the following types of leaks. See the Dockerfile for details about all the available enviroment variables.
