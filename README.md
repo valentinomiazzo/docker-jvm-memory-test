@@ -92,7 +92,7 @@ This is what happened:
 - the JVM process was not found by the jcmd loop and therefore the CMD completed
 - the Docker container exited.
 
-You can check that Docker actualli terminated the container with
+You can check that Docker actually terminated the container with
 ```sh
 $ docker inspect -f '{{json .State}}' $(docker ps -l -q)
 {"Status":"exited","Running":false,"Paused":false,"Restarting":false,"OOMKilled":true,"Dead":false,"Pid":0,"ExitCode":0,"Error":"","StartedAt":"2016-06-13T13:33:32.861200851Z","FinishedAt":"2016-06-13T13:33:43.929282195Z"}
