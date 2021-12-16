@@ -1,4 +1,4 @@
-FROM java:8-jdk-alpine
+FROM openjdk:8-alpine
 
 COPY javassist.jar .
 COPY MemoryTest.java .
@@ -59,6 +59,8 @@ CMD java \
      -Xss${THREAD_STACK_SIZE_KB}k \
      -XX:MaxMetaspaceSize=${MAX_CLASS_SIZE_MB}m \
      -XX:MaxDirectMemorySize=${MAX_DIRECT_SIZE_MB}m \
+     -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${HEAP_DUMP_PATH} \
+     -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap \
      -cp javassist.jar:. \
      MemoryTest $ALLOC_PERIOD_MS $ALLOC_HEAP_MB $ALLOC_NATIVE_MB $ALLOC_DIRECT_MB $ALLOC_CLASSES_COUNT $ALLOC_THREADS_COUNT \
      & PID=$! ; while [ -e /proc/$PID ] ; do jcmd $PID VM.native_memory summary scale=MB ; sleep ${LOG_PERIOD_S}s ; done 
